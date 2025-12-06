@@ -1,1 +1,0 @@
-console.log('Script B (defer) executed');
