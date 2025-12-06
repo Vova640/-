@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>SSE Chat</title>
+<style>
+body{font-family: Arial, sans-serif; padding: 16px}
+#messages{border:1px solid #ccc; height:300px; overflow:auto; padding:8px}
+.msg{margin:6px 0; padding:6px; border-radius:6px}
+.meta{font-size:0.85em; color:#333}
+</style>
+</head>
+<body>
+<h2>SSE Chat</h2>
+<label>Username: <input id="username" /></label>
+<div id="messages"></div>
+<input id="text" placeholder="Type message..." />
+<button id="send">Send</button>
+
+
+<script>
+const usernameInput = document.getElementById('username');
+const textInput = document.getElementById('text');
+const sendBtn = document.getElementById('send');
+const messages = document.getElementById('messages');
+
+
+const colors = {};
+function colorFor(name) {
+if (!colors[name]) {
+let hash = 0; for (let i=0;i<name.length;i++) hash = name.charCodeAt(i) + ((hash<<5)-hash);
+const hue = Math.abs(hash) % 360;
+colors[name] = `hsl(${hue} 70% 80%)`;
+}
+return colors[name];
+}
+
+
+const evtSrc = new EventSource('/events');
+evtSrc.onmessage = function(e){
+try{
+const payload = JSON.parse(e.data);
+if (payload.type === 'message') {
+const m = payload.message;
+const el = document.createElement('div');
+el.className = 'msg';
+el.style.background = colorFor(m.username);
+el.innerHTML = `<div><strong>${m.username}</strong> <span class="meta">[${new Date(m.time).toLocaleTimeString()}]</span></div><div>${m.text}</div>`;
+messages.appendChild(el);
+messages.scrollTop = messages.scrollHeight;
+}
+}catch(err){console.error(err)}
+};
+
+
+sendBtn.addEventListener('click', async ()=>{
+const username = usernameInput.value.trim();
+const text = textInput.value.trim();
+if(!username || !text) return alert('Enter username and message');
+await fetch('/message', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,text})});
+textInput.value = '';
+});
+</script>
+</body>
+</html>
